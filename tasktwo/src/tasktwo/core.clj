@@ -24,8 +24,22 @@
 )
 
 (doseq [i mini-products]
-  (if (= (:name i) (str "Chekov T-shirt")) (println (i :variants)))
+  (if (= (:name i) (str "Chekov T-shirt"))
+    (dotimes [j (count (vec (nth (nth (vec i) 3) 1)))]
+      (if(= "L" (str (get-in shirtdata [:variants (keyword (nth (nth (vec (nth (nth (vec i) 3) 1)) j)0)) :options :size])))
+        (println "There are " (count (vec (nth (nth (vec i) 3) 1))) " available sizes of Chekov shirt."
+          "\nPrice of large Checkov t-shirt is "
+          (get-in shirtdata [:variants (keyword (nth (nth (vec (nth (nth (vec i) 3) 1)) j)0)) :price :GBP])
+        )
+      )
+    )
+  )
 )
+
+
+
+
+
 ;-------------------------------------------------------------------------------------------------------
 ;                                             Full data
 ;-------------------------------------------------------------------------------------------------------
