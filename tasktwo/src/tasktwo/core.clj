@@ -2,10 +2,14 @@
   (:gen-class)
   (:require clojure.test)
   (:require [cheshire.core :refer :all])
+  (require [clj-time.core :as t])
 )
 ;-------------------------------------------------------------------------------------------------------
 ;                                             Full data
 ;-------------------------------------------------------------------------------------------------------
+(def mini-products (parse-stream (clojure.java.io/reader "mini-data\\products.json") true))
+(def mini-orders (parse-stream (clojure.java.io/reader "mini-data\\orders.json") true))
+(def mini-offers (parse-stream (clojure.java.io/reader "mini-data\\offers.json") true))
 (def products (parse-stream (clojure.java.io/reader "acme-data\\products.json") true))
 (def offers  (parse-stream (clojure.java.io/reader "acme-data\\offers.json") true))
 ;Open everything inside this folder
@@ -129,20 +133,19 @@
               )
               (def multiplier (first (re-find (re-pattern #"(\d+)(?!.*\d)") description )))
               (def sum (+ sum (* (Integer/parseInt multiplier) (float price))))
-              ;uncomment if you want to inlucde delivery cost to the total turnover
-              ;(def sum (+ sum (float delivery)))
+              ;uncomment below  if you want to inlucde delivery cost to the total turnover
+              (def sum (+ sum (float delivery)))
             )
           )
       ))
-      (def turnover-sum (+ sum totalsum))
+      (def totalsum (+ sum totalsum))
       ;(println "Total: "(format "%.2f" sum))
     ))
     (println "Total turnover (excluding delivery price):"(format "%.2f" totalsum))
 )
 (turnover orders)
 
-
-;;Calculating profit
+;; Calculating profit
 (defn profit [purchase-orders-data]
   (def total 0)
   (doseq [i purchase-orders-data] (do
@@ -158,3 +161,76 @@
   (println "Total spent " total)
 )
 (profit purchase-orders)
+
+;; Top 10 sold products
+(defn top-10-products []
+  (def sold-products [])
+  (doseq [i mini-orders] (do
+    (def lines (get-in i [:lines]))
+    (doseq [j lines] (do
+      (def description (get-in j [:description]))
+      (def sku (re-find (re-pattern #"[^\s]*") description ))
+      (def quantity (first (re-find (re-pattern #"(\d+)(?!.*\d)") description )))
+      (doseq [k mini-products] (do
+        (if (= (get-in k [:variants (keyword sku) :sku]) sku)
+          (repeat (Integer/parseInt quantity)
+            (def sold-products (conj sold-products (get-in k [:name])))
+          )
+        )
+      ))
+    ))
+  ))
+  (def sold-products (sort-by val(frequencies sold-products)))
+  (println (take 10 (reverse sold-products)))
+)
+(top-10-products)
+
+
+(defn unfulfilled-orders
+  (def unfulfilled (- (count orders) (count shipments)))
+  (println "Number of unfulfilled orders: " unfulfilled)
+)
+
+;; Time take to fulfull orders
+(defn fulfillment-times []
+  (def times [])
+  (doseq [i shipments]
+    (def ordered-date-and-time (clojure.string/split (clojure.string/replace (get-in i [:ordered-at :date]) #"[^0-9]" " ") #" "))
+    (def shipped-date-and-time (clojure.string/split (clojure.string/replace (get-in i [:shipped-at :date]) #"[^0-9]" " ") #" "))
+    (def time-in-hours
+      (t/in-hours
+        (t/interval
+          (t/date-time
+            (Integer/parseInt (nth ordered-date-and-time 0))
+            (Integer/parseInt (nth ordered-date-and-time 1))
+            (Integer/parseInt (nth ordered-date-and-time 2))
+            (Integer/parseInt (nth ordered-date-and-time 3))
+            (Integer/parseInt (nth ordered-date-and-time 4))
+            (Integer/parseInt (nth ordered-date-and-time 5))
+            (Integer/parseInt (nth ordered-date-and-time 6))
+          )
+          (t/date-time
+            (Integer/parseInt (nth shipped-date-and-time 0))
+            (Integer/parseInt (nth shipped-date-and-time 1))
+            (Integer/parseInt (nth shipped-date-and-time 2))
+            (Integer/parseInt (nth shipped-date-and-time 3))
+            (Integer/parseInt (nth shipped-date-and-time 4))
+            (Integer/parseInt (nth shipped-date-and-time 5))
+            (Integer/parseInt (nth shipped-date-and-time 6))
+          )
+        )
+      )
+    )
+    (def times (conj times time-in-hours))
+  )
+  (def times (sort times))
+  (println "Minimum time: " (first times) "Hours")
+  (println "Maximum time: " (last times) "Hours")
+  (def average (float (/ (reduce + times)  (count times))))
+  (println "Average:      " (format "%.2f" average "Hours"))
+  (println "Or" (format "%.2f" (float (/ average 24))) "days")
+  ;(print times)
+)
+(fulfillment-times)
+
+(t/in-hours (t/interval (t/date-time test) (t/date-time test)))

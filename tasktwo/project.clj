@@ -3,7 +3,7 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"][cheshire "5.8.0"]]
+  :dependencies [[org.clojure/clojure "1.8.0"][cheshire "5.8.0"][clj-time "0.14.3"]]
   :main ^:skip-aot tasktwo.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
