@@ -5,49 +5,59 @@
   (require [clj-time.core :as t])
   (require [clj-time.format :as f])
   (require [clj-time.coerce :as c])
+  (use hiccup.core)
 )
-(use 'hiccup.core)
 ;-------------------------------------------------------------------------------------------------------
 ;                                             Full data
 ;-------------------------------------------------------------------------------------------------------
-(def mini-products (parse-stream (clojure.java.io/reader "mini-data\\products.json") true))
-(def mini-orders (parse-stream (clojure.java.io/reader "mini-data\\orders.json") true))
-(def mini-offers (parse-stream (clojure.java.io/reader "mini-data\\offers.json") true))
-(def products (parse-stream (clojure.java.io/reader "acme-data\\products.json") true))
-(def offers  (parse-stream (clojure.java.io/reader "acme-data\\offers.json") true))
-;Open everything inside this folder
-(def files (file-seq (clojure.java.io/file "acme-data")))
-;Check if its a file rather than a folder
-(defn only-files
-  [file-s]
-  (filter #(.isFile %) file-s))
-;Convert the LazySeq to a vector
-(def files-vec (vec (only-files files)))
+(defn load-mini-data []
+  (def mini-products (parse-stream (clojure.java.io/reader "mini-data\\products.json") true))
+  (def mini-orders (parse-stream (clojure.java.io/reader "mini-data\\orders.json") true))
+  (def mini-offers (parse-stream (clojure.java.io/reader "mini-data\\offers.json") true))
+)
+(load-mini-data)
+;; load all data
+(defn load-full-data []
+  (def products (parse-stream (clojure.java.io/reader "acme-data\\products.json") true))
+  (def offers  (parse-stream (clojure.java.io/reader "acme-data\\offers.json") true))
+  ;Open everything inside this folder
+  (def files (file-seq (clojure.java.io/file "acme-data")))
+  ;Check if its a file rather than a folder
+  (defn only-files
+    [file-s]
+    (filter #(.isFile %) file-s))
+  ;Convert the LazySeq to a vector
+  (def files-vec (vec (only-files files)))
 
-;Initialise variables
-(def orders [])
-(def purchase-orders [])
-(def shipments [])
+  ;Initialise variables
+  (def orders [])
+  (def purchase-orders [])
+  (def shipments [])
 
-(for [i files-vec]
-  (if (boolean (re-find #"\\orders\\" (str i)))
-    (def orders (concat orders (parse-stream (clojure.java.io/reader i) true)))
-    ;if not a order check its either a shipment or a purchase-order
-    (if (boolean (re-find #"\\purchase-orders\\" (str i)))
-      (def purchase-orders (concat purchase-orders (parse-stream (clojure.java.io/reader i) true)))
-      ;if its not a purchase-order its would be a shipment
-      (if (boolean (re-find #"\\shipments\\" (str i)))
-        (def shipments (concat shipments (parse-stream (clojure.java.io/reader i) true)))
-        ;(println "No valid files found"
+  (for [i files-vec]
+    (if (boolean (re-find #"\\orders\\" (str i)))
+      (def orders (concat orders (parse-stream (clojure.java.io/reader i) true)))
+      ;if not a order check its either a shipment or a purchase-order
+      (if (boolean (re-find #"\\purchase-orders\\" (str i)))
+        (def purchase-orders (concat purchase-orders (parse-stream (clojure.java.io/reader i) true)))
+        ;if its not a purchase-order its would be a shipment
+        (if (boolean (re-find #"\\shipments\\" (str i)))
+          (def shipments (concat shipments (parse-stream (clojure.java.io/reader i) true)))
+          ;(println "No valid files found"
+        )
       )
     )
   )
 )
+(load-full-data)
 
-(println "There are" (count  (map :id products)) "unique products (full data)")
-(println "There are" (count  (map :id purchase-orders)) "unique purchase-orders (full data)")
-(println "There are" (count  (map :id orders)) "unique orders (full data)")
-(println "There are" (count  (map :id shipments)) "unique shipments (full data)")
+(defn test-data []
+  (println "There are" (count  (map :id products)) "unique products (full data)")
+  (println "There are" (count  (map :id purchase-orders)) "unique purchase-orders (full data)")
+  (println "There are" (count  (map :id orders)) "unique orders (full data)")
+  (println "There are" (count  (map :id shipments)) "unique shipments (full data)")
+)
+(test-data)
 
 ;; Data of a shirt
 (defn shirttype-by-name [name]
@@ -203,11 +213,7 @@
     (def built-in-formatter (f/formatters :date-time))
     (def ordered-date  (f/parse built-in-formatter (get-in i [:ordered-at :date])))
     (def shipped-date  (f/parse built-in-formatter (get-in i [:shipped-at :date])))
-    (def time-in-hours
-      (t/in-hours
-        (t/interval ordered-date shipped-date)
-      )
-    )
+    (def time-in-hours (t/in-hours (t/interval ordered-date shipped-date)))
     (def times (conj times time-in-hours))
   )
   (def times (sort times))
