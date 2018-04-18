@@ -6,6 +6,7 @@
   (require [clj-time.format :as f])
   (require [clj-time.coerce :as c])
 )
+(use 'hiccup.core)
 ;-------------------------------------------------------------------------------------------------------
 ;                                             Full data
 ;-------------------------------------------------------------------------------------------------------
@@ -55,7 +56,6 @@
   )
 )
 (shirttype-by-name "Dr. McCoy T-shirt")
-
 
 ;;Price of SKU-1038
 (defn price-by-sku [sku]
@@ -113,39 +113,28 @@
 )
 (order-for-address "64, Elmington Road, Birmingham, B13 6QG")
 
-(defn turnover [orders-data]
 ;; Calculating turnover
+(defn turnover [dir]
+  (def files (file-seq (clojure.java.io/file (str "acme-data\\" dir))))
+  (defn only-files
+    [file-s]
+    (filter #(.isFile %) file-s))
+  (def files-vec (vec (only-files files)))
+  (def data [])
+  (doseq [i files-vec]
+    (do
+      (def data (concat data (parse-stream (clojure.java.io/reader i) true)))
+    )
+  )
   (def totalsum 0.0)
-  (doseq [i orders-data] (do
-      (def sum 0)
-      (def lines (get-in i [:lines]))
-      (doseq [j lines] (do
-          (def description (get-in j [:description]))
-          (def sku (re-find (re-pattern #"[^\s]*") description ))
-          (if (= (str "Delivery") description)
-            (do
-              (def delivery (get-in j [:price :GBP]) )
-              ;(println  "Delivery cost: "delivery)
-            )
-            (do
-              (doseq [k products]
-                (if (= (get-in k [:variants (keyword sku) :sku]) sku)
-                  (def price (get-in k [:variants (keyword sku) :price :GBP]))
-                )
-              )
-              (def multiplier (first (re-find (re-pattern #"(\d+)(?!.*\d)") description )))
-              (def sum (+ sum (* (Integer/parseInt multiplier) (float price))))
-             ;uncomment if you want to inlucde delivery cost to the total turnover
-              ;(def sum (+ sum (float delivery)))
-            )
-          )
-      ))
-      (def totalsum (+ sum totalsum))
-      ;(println "Total: "(format "%.2f" sum))
+  (doseq [i data] (do
+      (def total (float(get-in i [:total :GBP])))
+      (def totalsum (+ total totalsum))
     ))
-    (println "Total turnover (excluding delivery price):"(format "%.2f" totalsum))
+    (println "Total turnover for" dir "is" (format "%.2f" totalsum))
+    (println "Including delivery payments")
 )
-(turnover orders)
+(turnover "orders\\2015")
 
 ;; Calculating profit
 (defn profit [purchase-orders-data]
@@ -167,13 +156,13 @@
 ;; Top 10 sold products
 (defn top-10-products []
   (def sold-products [])
-  (doseq [i mini-orders] (do
+  (doseq [i orders] (do
     (def lines (get-in i [:lines]))
     (doseq [j lines] (do
       (def description (get-in j [:description]))
       (def sku (re-find (re-pattern #"[^\s]*") description ))
       (def quantity (first (re-find (re-pattern #"(\d+)(?!.*\d)") description )))
-      (doseq [k mini-products] (do
+      (doseq [k products] (do
         (if (= (get-in k [:variants (keyword sku) :sku]) sku)
           (repeat (Integer/parseInt quantity)
             (def sold-products (conj sold-products (get-in k [:name])))
@@ -183,10 +172,12 @@
     ))
   ))
   (def sold-products (sort-by val(frequencies sold-products)))
-  (println (take 10 (reverse sold-products)))
+  (def sold-products (take 10 (reverse sold-products)))
+  (doseq [i sold-products]
+    (println i)
+  )
 )
 (top-10-products)
-
 
 (defn unfulfilled-orders []
   (def unfulfilled (- (count orders) (count shipments)))
@@ -203,7 +194,7 @@
     (def shipped-date  (f/parse built-in-formatter (get-in i [:shipped-at :date])))
     (def time-in-hours
       (t/in-hours
-        (t/interval orders-date shipped-date)
+        (t/interval ordered-date shipped-date)
       )
     )
     (def times (conj times time-in-hours))
@@ -213,6 +204,5 @@
   (println "Maximum time: " (last times) "Hours")
   (def average (float (/ (reduce + times)  (count times))))
   (println "Average:      " (format "%.2f" average) "Hours Or" (format "%.2f" (float (/ average 24))) "days")
-  ;(print times)
 )
 (fulfillment-times)
