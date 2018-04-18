@@ -3,6 +3,8 @@
   (:require clojure.test)
   (:require [cheshire.core :refer :all])
   (require [clj-time.core :as t])
+  (require [clj-time.format :as f])
+  (require [clj-time.coerce :as c])
 )
 ;-------------------------------------------------------------------------------------------------------
 ;                                             Full data
@@ -196,30 +198,12 @@
 (defn fulfillment-times []
   (def times [])
   (doseq [i shipments]
-    (def ordered-date-and-time (clojure.string/split (clojure.string/replace (get-in i [:ordered-at :date]) #"[^0-9]" " ") #" "))
-    (def shipped-date-and-time (clojure.string/split (clojure.string/replace (get-in i [:shipped-at :date]) #"[^0-9]" " ") #" "))
+    (def built-in-formatter (f/formatters :date-time))
+    (def ordered-date  (f/parse built-in-formatter (get-in i [:ordered-at :date])))
+    (def shipped-date  (f/parse built-in-formatter (get-in i [:shipped-at :date])))
     (def time-in-hours
       (t/in-hours
-        (t/interval
-          (t/date-time
-            (Integer/parseInt (nth ordered-date-and-time 0))
-            (Integer/parseInt (nth ordered-date-and-time 1))
-            (Integer/parseInt (nth ordered-date-and-time 2))
-            (Integer/parseInt (nth ordered-date-and-time 3))
-            (Integer/parseInt (nth ordered-date-and-time 4))
-            (Integer/parseInt (nth ordered-date-and-time 5))
-            (Integer/parseInt (nth ordered-date-and-time 6))
-          )
-          (t/date-time
-            (Integer/parseInt (nth shipped-date-and-time 0))
-            (Integer/parseInt (nth shipped-date-and-time 1))
-            (Integer/parseInt (nth shipped-date-and-time 2))
-            (Integer/parseInt (nth shipped-date-and-time 3))
-            (Integer/parseInt (nth shipped-date-and-time 4))
-            (Integer/parseInt (nth shipped-date-and-time 5))
-            (Integer/parseInt (nth shipped-date-and-time 6))
-          )
-        )
+        (t/interval orders-date shipped-date)
       )
     )
     (def times (conj times time-in-hours))
