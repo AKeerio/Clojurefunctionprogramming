@@ -112,7 +112,7 @@
 (order-for-address "64, Elmington Road, Birmingham, B13 6QG")
 
 (defn turnover [orders-data]
-  ;; Calculating turnover
+;; Calculating turnover
   (def totalsum 0.0)
   (doseq [i orders-data] (do
       (def sum 0)
@@ -133,8 +133,8 @@
               )
               (def multiplier (first (re-find (re-pattern #"(\d+)(?!.*\d)") description )))
               (def sum (+ sum (* (Integer/parseInt multiplier) (float price))))
-              ;uncomment below  if you want to inlucde delivery cost to the total turnover
-              (def sum (+ sum (float delivery)))
+             ;uncomment if you want to inlucde delivery cost to the total turnover
+              ;(def sum (+ sum (float delivery)))
             )
           )
       ))
@@ -186,10 +186,11 @@
 (top-10-products)
 
 
-(defn unfulfilled-orders
+(defn unfulfilled-orders []
   (def unfulfilled (- (count orders) (count shipments)))
   (println "Number of unfulfilled orders: " unfulfilled)
 )
+(unfulfilled-orders)
 
 ;; Time take to fulfull orders
 (defn fulfillment-times []
@@ -227,10 +228,7 @@
   (println "Minimum time: " (first times) "Hours")
   (println "Maximum time: " (last times) "Hours")
   (def average (float (/ (reduce + times)  (count times))))
-  (println "Average:      " (format "%.2f" average "Hours"))
-  (println "Or" (format "%.2f" (float (/ average 24))) "days")
+  (println "Average:      " (format "%.2f" average) "Hours Or" (format "%.2f" (float (/ average 24))) "days")
   ;(print times)
 )
 (fulfillment-times)
-
-(t/in-hours (t/interval (t/date-time test) (t/date-time test)))
