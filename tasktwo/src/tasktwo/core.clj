@@ -69,18 +69,15 @@
 ;; Price of large chekov short and number of sizes available
 (defn price-by-shirt [name size]
   (doseq [i products]
-    (if (= (:name i) name)
-      (dotimes [j (count (vec (nth (nth (vec i) 3) 1)))]
-        (if(= size (str (get-in i [:variants (keyword (nth (nth (vec (nth (nth (vec i) 3) 1)) j)0)) :options :size])))
-          (println "There are " (count (vec (nth (nth (vec i) 3) 1))) " available sizes of Chekov shirt."
-            "\nPrice of" size name "is "
-            (get-in i [:variants
-              (keyword (nth (nth (vec (nth (nth (vec i) 3) 1)) j)0))
-              :price :GBP])
-          )
-        )
-      )
-    )
+    (if (= name (:name i)) (do
+        (println "There are" (count (get-in i [:variants])) "variants of" name)
+        (dotimes [j (count (get-in i [:variants]))] (do
+          (def sku (nth (nth (vec (nth (nth (vec i) 3) 1)) j)0))
+          (if (= size (str (get-in i [:variants (keyword sku) :options :size]))) (do
+            (println "Size of" size name "shirt is" (get-in i [:variants (keyword sku) :price :GBP]))
+          ))
+        ))
+    ))
   )
 )
 (price-by-shirt "Chekov T-shirt" "L")
@@ -114,6 +111,7 @@
 (order-for-address "64, Elmington Road, Birmingham, B13 6QG")
 
 ;; Calculating turnover
+(def turnover-sum 0.0)
 (defn turnover [dir]
   (def files (file-seq (clojure.java.io/file (str "acme-data\\" dir))))
   (defn only-files
@@ -126,20 +124,32 @@
       (def data (concat data (parse-stream (clojure.java.io/reader i) true)))
     )
   )
-  (def totalsum 0.0)
+  (def turnover-sum 0.0)
   (doseq [i data] (do
       (def total (float(get-in i [:total :GBP])))
-      (def totalsum (+ total totalsum))
+      (def turnover-sum (+ total turnover-sum))
     ))
-    (println "Total turnover for" dir "is" (format "%.2f" totalsum))
-    (println "Including delivery payments")
+    (println "Total turnover for" dir "is" (format "%.2f" turnover-sum) "(with deliveries)")
 )
 (turnover "orders\\2015")
 
 ;; Calculating profit
-(defn profit [purchase-orders-data]
+(defn profit [dir]
+  (def order-dir (str (clojure.string/replace dir #"purchase-" "")))
+  (turnover order-dir)
+  (def files (file-seq (clojure.java.io/file (str "acme-data\\" dir))))
+  (defn only-files
+    [file-s]
+    (filter #(.isFile %) file-s))
+  (def files-vec (vec (only-files files)))
+  (def data [])
+  (doseq [i files-vec]
+    (do
+      (def data (concat data (parse-stream (clojure.java.io/reader i) true)))
+    )
+  )
   (def total 0)
-  (doseq [i purchase-orders-data] (do
+  (doseq [i data] (do
     (def sum 0)
     (def lines (get-in i [:lines]))
     (doseq [j lines] (do
@@ -149,9 +159,10 @@
     ))
     (def total (+ total sum))
   ))
-  (println "Total spent " total)
+  (println "Total spent on purchase orders" (format "%.2f" total))
+  (println "Profit" (format "%.2f" (- turnover-sum total)))
 )
-(profit purchase-orders)
+(profit "purchase-orders\\2017")
 
 ;; Top 10 sold products
 (defn top-10-products []
@@ -180,7 +191,7 @@
 (top-10-products)
 
 (defn unfulfilled-orders []
-  (def unfulfilled (- (count orders) (count shipments)))
+  (def unfulfilled (- (count (map :id orders)) (count (map :id shipments))))
   (println "Number of unfulfilled orders: " unfulfilled)
 )
 (unfulfilled-orders)
