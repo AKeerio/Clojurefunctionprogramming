@@ -60,69 +60,67 @@
 (test-data)
 
 ;; Data of a shirt
-(defn shirttype-by-name [name]
+(do
   (doseq [i products]
-    (if (= (:name i) name) (println (i :variants)))
+    (if (= (:name i) "Dr. McCoy T-shirt") (def shirtdata-by-name (i :variants)))
   )
+  (println shirtdata-by-name)
 )
-(shirttype-by-name "Dr. McCoy T-shirt")
 
 ;;Price of SKU-1038
-(defn price-by-sku [sku]
+(do
   (doseq [i products]
-    (if (= (get-in i [:variants (keyword sku) :sku]) sku)
-      (println (get-in i [:variants (keyword sku) :price :GBP])))
+    (if (= (get-in i [:variants (keyword "SKU-1038") :sku]) "SKU-1038")
+      (def price-by-sku (get-in i [:variants (keyword "SKU-1038") :price :GBP])))
   )
+  (println "Price:" price-by-sku)
 )
-(price-by-sku "SKU-1038")
-
 ;; Price of large chekov short and number of sizes available
-(defn price-by-shirt [name size]
+(do
   (doseq [i products]
-    (if (= name (:name i)) (do
-        (println "There are" (count (get-in i [:variants])) "variants of" name)
-        (dotimes [j (count (get-in i [:variants]))] (do
-          (def sku (nth (nth (vec (nth (nth (vec i) 3) 1)) j)0))
-          (if (= size (str (get-in i [:variants (keyword sku) :options :size]))) (do
-            (println "Size of" size name "shirt is" (get-in i [:variants (keyword sku) :price :GBP]))
-          ))
+    (if (= "Chekov T-shirt" (:name i)) (do
+      (def variants-by-shirt (count (get-in i [:variants])))
+      (dotimes [j (count (get-in i [:variants]))] (do
+        (def sku (nth (nth (vec (nth (nth (vec i) 3) 1)) j)0))
+        (if (= "L" (str (get-in i [:variants (keyword sku) :options :size]))) (do
+          (def price-by-shirt (get-in i [:variants (keyword sku) :price :GBP]))
         ))
+      ))
     ))
   )
+  (println "Price: " price-by-shirt)
+  (println "Available quantity" variants-by-shirt)
 )
-(price-by-shirt "Chekov T-shirt" "L")
 
 ;; Order by id and the names and sizes of each item on the order
-(defn order-by-id [id]
+(do
   (doseq [i orders]
-    (if (= id (:id i)) (do
-        ;(println i)
-        (def lines (get-in i [:lines]))
-        (doseq [j lines]
-          (def sku (re-find (re-pattern #"[^\s]*") (get-in j [:description])))
-          (doseq [k products]
-            (if (= (get-in k [:variants (keyword sku) :sku]) sku)
-              (println "Name: " (:name k) "\nSize "  (get-in k [:variants (keyword sku) :options :size])))
-          )
-        )
-    ))
+    (if (= "ab10f1fb-f91b-4bd5-b3ad-21361927b174" (:id i))
+      (def order-by-id i)
+    )
   )
-)
-(order-by-id "ab10f1fb-f91b-4bd5-b3ad-21361927b174")
-
-;; Delivery order for 16, Stewart's Court, Blackburn, BB6 2HV
-(defn order-for-address [address]
-  (doseq [i orders]
-    (if (= (clojure.string/split address #",\s*")  (:delivery-address i))
-      (println i)
+  (doseq [i (get-in order-by-id [:lines])]
+    (def sku (re-find (re-pattern #"[^\s]*") (get-in i [:description])))
+    (doseq [j products]
+      (if (= (get-in j [:variants (keyword sku) :sku]) sku)
+        (println "Name: " (:name j) "Size: "  (get-in j [:variants (keyword sku) :options :size])))
     )
   )
 )
-(order-for-address "64, Elmington Road, Birmingham, B13 6QG")
+
+;; Delivery order for 16, Stewart's Court, Blackburn, BB6 2HV
+(do
+  (doseq [i orders]
+    (if (= (clojure.string/split "64, Elmington Road, Birmingham, B13 6QG" #",\s*")  (:delivery-address i))
+      (def order-for-address i)
+    )
+  )
+  (println order-for-address)
+)
 
 ;; Calculating turnover
-(def turnover-sum 0.0)
 (defn turnover [dir]
+  (def turnover-sum 0.0)
   (def files (file-seq (clojure.java.io/file (str "acme-data\\" dir))))
   (defn only-files
     [file-s]
@@ -136,15 +134,15 @@
   )
   (def turnover-sum 0.0)
   (doseq [i data] (do
-      (def total (float(get-in i [:total :GBP])))
-      (def turnover-sum (+ total turnover-sum))
-    ))
-    (println "Total turnover for" dir "is" (format "%.2f" turnover-sum) "(with deliveries)")
+    (def total (float(get-in i [:total :GBP])))
+    (def turnover-sum (+ total turnover-sum))
+   ))
+  (println "Turnover for" dir "is" (format "%.2f" turnover-sum) "(with deliveries)")
 )
-(turnover "orders\\2015")
-
+(println "Turnover for" dir "is" (format "%.2f" turnover-sum) "(with deliveries)")
 ;; Calculating profit
-(defn profit [dir]
+(do
+  (def dir "purchase-orders\\2017")
   (def order-dir (str (clojure.string/replace dir #"purchase-" "")))
   (turnover order-dir)
   (def files (file-seq (clojure.java.io/file (str "acme-data\\" dir))))
@@ -170,12 +168,12 @@
     (def total (+ total sum))
   ))
   (println "Total spent on purchase orders" (format "%.2f" total))
-  (println "Profit" (format "%.2f" (- turnover-sum total)))
+  (def profit (- turnover-sum total))
+  (println "Profit" (format "%.2f" profit))
 )
-(profit "purchase-orders\\2017")
 
 ;; Top 10 sold products
-(defn top-10-products []
+(do
   (def sold-products [])
   (doseq [i orders] (do
     (def lines (get-in i [:lines]))
@@ -195,19 +193,19 @@
   (def sold-products (sort-by val(frequencies sold-products)))
   (def sold-products (take 10 (reverse sold-products)))
   (doseq [i sold-products]
-    (println i)
+    (println (first i))
+    (spit "index.html" (html [:div#top.product (str (first i))]) :append true)
   )
+  (spit "index.html" (html [:div#top.product "---------------------"]) :append true)
 )
-(top-10-products)
 
-(defn unfulfilled-orders []
+(do
   (def unfulfilled (- (count (map :id orders)) (count (map :id shipments))))
   (println "Number of unfulfilled orders: " unfulfilled)
 )
-(unfulfilled-orders)
 
 ;; Time take to fulfull orders
-(defn fulfillment-times []
+(do
   (def times [])
   (doseq [i shipments]
     (def built-in-formatter (f/formatters :date-time))
@@ -222,4 +220,3 @@
   (def average (float (/ (reduce + times)  (count times))))
   (println "Average:      " (format "%.2f" average) "Hours Or" (format "%.2f" (float (/ average 24))) "days")
 )
-(fulfillment-times)
