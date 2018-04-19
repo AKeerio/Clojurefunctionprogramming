@@ -1,6 +1,7 @@
 (ns tasktwo.core
   (:gen-class)
   (:require [clojure.test]
+            [clojure.test :refer :all]
             [cheshire.core :refer :all]
             [clj-time.core :as t]
             [clj-time.format :as f]
@@ -8,6 +9,22 @@
 
   (use hiccup.core)
 )
+;-------------------------------------------------------------------------------------------------------
+;                                             References
+;-------------------------------------------------------------------------------------------------------
+; This project uses two dependencies
+;       - Cheshire "5.8.0"
+;       - clj-time "0.14.3"
+; Cheshire dependencies is used to parse JSON data into LazySeq. I chose this library becuase of its claim
+; its fast at processing JSON files as well as contains a number of features.
+;
+; clj-time dependencies is mainly used for calculating minimum, maximum and average times of deliveries.
+; I use its function (format) to convert a date string from JSON data into a date-time object
+; I acquire a date-time object for both shipped-at date and ordered-at.
+; Then I use function (interval) provided by this dependency to find out the time difference between these
+; two dates. Again I use its function (in-hours) to convert that times in hours
+
+
 ;-------------------------------------------------------------------------------------------------------
 ;                                             Full data
 ;-------------------------------------------------------------------------------------------------------
@@ -233,6 +250,7 @@
   (spit "index.html" (html [:div#top.product "---------------------"]) :append true)
 )
 
+;; Number of unfulfilled orders
 (do
   (def unfulfilled (- (count (map :id orders)) (count (map :id shipments))))
   (println "Number of unfulfilled orders: " unfulfilled)
@@ -254,3 +272,94 @@
   (def average (float (/ (reduce + times)  (count times))))
   (println "Average:      " (format "%.2f" average) "Hours Or" (format "%.2f" (float (/ average 24))) "days")
 )
+;---------------------------------------------------------------------------------------------------------------
+;                                                   Testing
+;---------------------------------------------------------------------------------------------------------------
+
+;; Define all tests
+(do
+  (deftest products-count-test
+    (testing "Wrong number products loaded"
+      (is (= (count products) 20))
+    )
+  )
+
+  (deftest orders-count-test
+    (testing "Wrong number products loaded"
+      (is (= (count orders) 207268))
+    )
+  )
+
+  (deftest purchase-orders-count-test
+    (testing "Wrong number purchase-orders loaded"
+      (is (= (count purchase-orders) 451))
+    )
+  )
+
+  (deftest shipments-count-test
+    (testing "Wrong number shipments loaded"
+      (is (= (count shipments) 205602))
+    )
+  )
+
+  (deftest price-by-sku-test
+    (testing "Wrong price (by SKU) given."
+      (is (= price-by-sku 14.99))
+    )
+  )
+
+  (deftest price-by-shirt-test
+    (testing "Wrong price (by shirt name) given."
+      (is (= price-by-shirt 14.99))
+    )
+  )
+
+  (deftest variants-by-shirt-test
+    (testing "Wrong number of variants given"
+      (is (= variants-by-shirt 5))
+    )
+  )
+
+  (deftest delivery-cost-test
+    (testing "Wrong amount of overall delivery cost Calculated"
+      (is (= delivery-sum 698841.091909647))
+    )
+  )
+
+  (deftest turnover-test
+    (testing "Wrong amout of overall turnover Calculated"
+      (is (= turnover-sum 8863508.734430313))
+    )
+  )
+
+  (deftest profit-test
+    (testing "Wrong of of profit Calculated"
+      (is (= profit 8095018.0440404415))
+    )
+  )
+
+  (deftest unfulfilled-orders-test
+    (testing "Wrong number of unfulfilled orders"
+      (is (= unfulfilled 1666))
+    )
+  )
+
+  (deftest min-time-test
+    (testing "Wrong number of hours for shortest delivery time given"
+      (is (= (first times) 9))
+    )
+  )
+
+  (deftest max-time-test
+    (testing "Wrong number of hours for longest delivery time given"
+      (is (= (last times) 160))
+    )
+  )
+
+  (deftest avg-time-test
+    (testing "Wrong number of hours for average delivery time given"
+      (is (= (float (/ (reduce + times)  (count times))) (float 57.955994)))
+    )
+  )
+)
+(run-tests)
