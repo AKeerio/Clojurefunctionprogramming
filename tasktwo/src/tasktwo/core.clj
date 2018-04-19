@@ -1,23 +1,24 @@
 (ns tasktwo.core
   (:gen-class)
-  (:require clojure.test)
-  (:require [cheshire.core :refer :all])
-  (require [clj-time.core :as t])
-  (require [clj-time.format :as f])
-  (require [clj-time.coerce :as c])
+  (:require [clojure.test]
+            [cheshire.core :refer :all]
+            [clj-time.core :as t]
+            [clj-time.format :as f]
+            [clj-time.coerce :as c])
+
   (use hiccup.core)
 )
 ;-------------------------------------------------------------------------------------------------------
 ;                                             Full data
 ;-------------------------------------------------------------------------------------------------------
-(defn load-mini-data []
+; load mini-data
+(do
   (def mini-products (parse-stream (clojure.java.io/reader "mini-data\\products.json") true))
   (def mini-orders (parse-stream (clojure.java.io/reader "mini-data\\orders.json") true))
   (def mini-offers (parse-stream (clojure.java.io/reader "mini-data\\offers.json") true))
 )
-(load-mini-data)
 ;; load all data
-(defn load-full-data []
+(do
   (def products (parse-stream (clojure.java.io/reader "acme-data\\products.json") true))
   (def offers  (parse-stream (clojure.java.io/reader "acme-data\\offers.json") true))
   ;Open everything inside this folder
@@ -49,15 +50,14 @@
     )
   )
 )
-(load-full-data)
 
-(defn test-data []
+;; Test data has been correctly loaded
+(do
   (println "There are" (count  (map :id products)) "unique products (full data)")
   (println "There are" (count  (map :id purchase-orders)) "unique purchase-orders (full data)")
   (println "There are" (count  (map :id orders)) "unique orders (full data)")
   (println "There are" (count  (map :id shipments)) "unique shipments (full data)")
 )
-(test-data)
 
 ;; Data of a shirt
 (do
@@ -139,12 +139,46 @@
    ))
   (println "Turnover for" dir "is" (format "%.2f" turnover-sum) "(with deliveries)")
 )
-(println "Turnover for" dir "is" (format "%.2f" turnover-sum) "(with deliveries)")
+
+;; Calculate total cost for deliveries
+(defn delivery-cost [dir]
+  (def delivery-sum 0.0)
+  (def files (file-seq (clojure.java.io/file (str "acme-data\\" dir))))
+  (defn only-files
+    [file-s]
+    (filter #(.isFile %) file-s))
+  (def files-vec (vec (only-files files)))
+  (def data [])
+  (doseq [i files-vec]
+    (do
+      (def data (concat data (parse-stream (clojure.java.io/reader i) true)))
+    )
+  )
+  (def delivery-sum 0.0)
+  (doseq [i data] (do
+   (def sum 0)
+   (def lines (get-in i [:lines]))
+   (doseq [j lines] (do
+    (def description (get-in j [:description]))
+    (def sku (re-find (re-pattern #"[^\s]*") description ))
+    (if (= (str "Delivery") description)
+     (do
+       (def delivery (get-in j [:price :GBP]) )
+       (def sum (+ sum (float delivery)))
+     )
+    )
+  ))
+  (def delivery-sum (+ sum delivery-sum))
+ ))
+ (println "Cost of deliveries" (format "%.2f" delivery-sum))
+)
+
 ;; Calculating profit
 (do
   (def dir "purchase-orders\\2017")
   (def order-dir (str (clojure.string/replace dir #"purchase-" "")))
   (turnover order-dir)
+  (delivery-cost order-dir)
   (def files (file-seq (clojure.java.io/file (str "acme-data\\" dir))))
   (defn only-files
     [file-s]
@@ -168,7 +202,7 @@
     (def total (+ total sum))
   ))
   (println "Total spent on purchase orders" (format "%.2f" total))
-  (def profit (- turnover-sum total))
+  (def profit (-  turnover-sum delivery-sum total))
   (println "Profit" (format "%.2f" profit))
 )
 
