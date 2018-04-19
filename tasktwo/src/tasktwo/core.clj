@@ -1,3 +1,6 @@
+;; Aijaz Ahmed Keerio
+;; B5016315
+
 (ns tasktwo.core
   (:gen-class)
   (:require [clojure.test]
@@ -35,8 +38,7 @@
 (do
   (def mini-products (parse-stream (clojure.java.io/reader "mini-data\\products.json") true))
   (def mini-orders (parse-stream (clojure.java.io/reader "mini-data\\orders.json") true))
-  (def mini-offers (parse-stream (clojure.java.io/reader "mini-data\\offers.json") true))
-)
+  (def mini-offers (parse-stream (clojure.java.io/reader "mini-data\\offers.json") true)))
 ;; load all data
 (do
   (def products (parse-stream (clojure.java.io/reader "acme-data\\products.json") true))
@@ -68,24 +70,22 @@
         )
       )
     )
-  )
-)
+  ))
 
 ;; Test data has been correctly loaded
 (do
   (println "There are" (count  (map :id products)) "unique products (full data)")
   (println "There are" (count  (map :id purchase-orders)) "unique purchase-orders (full data)")
   (println "There are" (count  (map :id orders)) "unique orders (full data)")
-  (println "There are" (count  (map :id shipments)) "unique shipments (full data)")
-)
+  (println "There are" (count  (map :id shipments)) "unique shipments (full data)"))
 
+(take 1 shipments)
 ;; Data of a shirt
 (do
   (doseq [i products]
     (if (= (:name i) "Dr. McCoy T-shirt") (def shirtdata-by-name (i :variants)))
   )
-  (println shirtdata-by-name)
-)
+  (println shirtdata-by-name))
 
 ;;Price of SKU-1038
 (do
@@ -93,8 +93,7 @@
     (if (= (get-in i [:variants (keyword "SKU-1038") :sku]) "SKU-1038")
       (def price-by-sku (get-in i [:variants (keyword "SKU-1038") :price :GBP])))
   )
-  (println "Price:" price-by-sku)
-)
+  (println "Price:" price-by-sku))
 ;; Price of large chekov short and number of sizes available
 (do
   (doseq [i products]
@@ -109,8 +108,7 @@
     ))
   )
   (println "Price: " price-by-shirt)
-  (println "Available quantity" variants-by-shirt)
-)
+  (println "Available quantity" variants-by-shirt))
 
 ;; Order by id and the names and sizes of each item on the order
 (do
@@ -125,8 +123,7 @@
       (if (= (get-in j [:variants (keyword sku) :sku]) sku)
         (println "Name: " (:name j) "Size: "  (get-in j [:variants (keyword sku) :options :size])))
     )
-  )
-)
+  ))
 
 ;; Delivery order for 16, Stewart's Court, Blackburn, BB6 2HV
 (do
@@ -135,8 +132,7 @@
       (def order-for-address i)
     )
   )
-  (println order-for-address)
-)
+  (println order-for-address))
 
 ;; Calculating turnover
 (defn turnover [dir]
@@ -158,7 +154,7 @@
     (def turnover-sum (+ total turnover-sum))
    ))
   (println "Turnover for" dir "is" (format "%.2f" turnover-sum) "(with deliveries)")
-)
+  (spit "webpage\\index.html" (html [:div#turnover.totalturnover "Turnover: " turnover-sum]) :append true))
 
 ;; Calculate total cost for deliveries
 (defn delivery-cost [dir]
@@ -191,7 +187,7 @@
   (def delivery-sum (+ sum delivery-sum))
  ))
  (println "Cost of deliveries" (format "%.2f" delivery-sum))
-)
+ (spit "webpage\\index.html" (html [:div#delivery.deliverysum "Cost of deliveries: " delivery-sum]) :append true))
 
 ;; Calculating profit
 (do
@@ -224,8 +220,10 @@
   (println "Total spent on purchase orders" (format "%.2f" total))
   (def profit (-  turnover-sum delivery-sum total))
   (println "Profit" (format "%.2f" profit))
-)
 
+  (spit "webpage\\index.html" (html [:div#profit.totalprofit "Total spent on purchase orders: " total]) :append true)
+  (spit "webpage\\index.html" (html [:div#profit.totalprofit "Profit: " profit]) :append true))
+    (spit "webpage\\index.html" (html [:div#avg.deliverytime "---------------------------------"]) :append true)
 ;; Top 10 sold products
 (do
   (def sold-products [])
@@ -257,6 +255,8 @@
 (do
   (def unfulfilled (- (count (map :id orders)) (count (map :id shipments))))
   (println "Number of unfulfilled orders: " unfulfilled)
+  (spit "webpage\\index.html" (html [:div#unfulfilled.unfulfilledroders "Number of unfulfilled orders: " unfulfilled]) :append true)
+  (spit "webpage\\index.html" (html [:div#unfulfilled.unfulfilledroders "---------------------"]) :append true)
 )
 
 ;; Time take to fulfull orders
@@ -274,7 +274,10 @@
   (println "Maximum time: " (last times) "Hours")
   (def average (float (/ (reduce + times)  (count times))))
   (println "Average:      " (format "%.2f" average) "Hours Or" (format "%.2f" (float (/ average 24))) "days")
-)
+  (spit "webpage\\index.html" (html [:div#min.deliverytime "Min delivery time: " profit]) :append true)
+  (spit "webpage\\index.html" (html [:div#max.deliverytime "Max delivery time: " profit]) :append true)
+  (spit "webpage\\index.html" (html [:div#avg.deliverytime "Average delivery time: " profit]) :append true)
+  (spit "webpage\\index.html" (html [:div#avg.deliverytime "---------------------------------"]) :append true))
 ;---------------------------------------------------------------------------------------------------------------
 ;                                                   Testing
 ;---------------------------------------------------------------------------------------------------------------
@@ -283,9 +286,7 @@
 (do
   (deftest products-count-test
     (testing "Wrong number products loaded"
-      (is (= (count products) 20))
-    )
-  )
+      (is (= (count products) 20))))
 
   (deftest orders-count-test
     (testing "Wrong number products loaded"
