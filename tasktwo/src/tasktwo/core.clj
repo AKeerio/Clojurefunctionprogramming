@@ -5,16 +5,18 @@
             [cheshire.core :refer :all]
             [clj-time.core :as t]
             [clj-time.format :as f]
-            [clj-time.coerce :as c])
-
+            [clj-time.coerce :as c]
+            [hiccup.core])
   (use hiccup.core)
 )
 ;-------------------------------------------------------------------------------------------------------
 ;                                             References
 ;-------------------------------------------------------------------------------------------------------
-; This project uses two dependencies
+; This project has three external dependencies
 ;       - Cheshire "5.8.0"
 ;       - clj-time "0.14.3"
+;       - hiccup   "1.0.5"
+;
 ; Cheshire dependencies is used to parse JSON data into LazySeq. I chose this library becuase of its claim
 ; its fast at processing JSON files as well as contains a number of features.
 ;
@@ -23,8 +25,9 @@
 ; I acquire a date-time object for both shipped-at date and ordered-at.
 ; Then I use function (interval) provided by this dependency to find out the time difference between these
 ; two dates. Again I use its function (in-hours) to convert that times in hours
-
-
+;
+; To create html pages I use hiccup dependency which lets me create div tags and generates html code
+; from variables
 ;-------------------------------------------------------------------------------------------------------
 ;                                             Full data
 ;-------------------------------------------------------------------------------------------------------
@@ -245,9 +248,9 @@
   (def sold-products (take 10 (reverse sold-products)))
   (doseq [i sold-products]
     (println (first i))
-    (spit "index.html" (html [:div#top.product (str (first i))]) :append true)
+    (spit "webpage\\index.html" (html [:div#product.topproduct (str (first i))]) :append true)
   )
-  (spit "index.html" (html [:div#top.product "---------------------"]) :append true)
+  (spit "webpage\\index.html" (html [:div#product.topproduct "---------------------"]) :append true)
 )
 
 ;; Number of unfulfilled orders
